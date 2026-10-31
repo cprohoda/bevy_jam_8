@@ -5,7 +5,7 @@
 
 mod asset_tracking;
 mod audio;
-mod demo;
+mod game;
 #[cfg(feature = "dev")]
 mod dev_tools;
 mod menus;
@@ -13,7 +13,7 @@ mod screens;
 mod theme;
 
 use bevy::{asset::AssetMetaCheck, prelude::*};
-
+use avian2d::prelude::*;
 fn main() -> AppExit {
     App::new().add_plugins(AppPlugin).run()
 }
@@ -47,7 +47,7 @@ impl Plugin for AppPlugin {
         app.add_plugins((
             asset_tracking::plugin,
             audio::plugin,
-            demo::plugin,
+            game::plugin,
             #[cfg(feature = "dev")]
             dev_tools::plugin,
             menus::plugin,
@@ -55,6 +55,8 @@ impl Plugin for AppPlugin {
             theme::plugin,
         ));
 
+        app.add_plugins(PhysicsPlugins::default().with_length_unit(100.0));
+        app.insert_resource(Gravity(Vec2::NEG_Y * 2500.0));
         // Order new `AppSystems` variants by adding them here:
         app.configure_sets(
             Update,

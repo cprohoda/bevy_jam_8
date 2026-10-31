@@ -14,13 +14,14 @@
 //! consider using a [fixed timestep](https://github.com/bevyengine/bevy/blob/main/examples/movement/physics_in_fixed_timestep.rs).
 
 use bevy::{prelude::*, window::PrimaryWindow};
+use avian2d::prelude::*;
 
 use crate::{AppSystems, PausableSystems};
 
 pub(super) fn plugin(app: &mut App) {
     app.add_systems(
         Update,
-        (apply_movement, apply_screen_wrap)
+        (apply_movement, apply_screen_wrap, apply_jump)
             .chain()
             .in_set(AppSystems::Update)
             .in_set(PausableSystems),
@@ -33,31 +34,31 @@ pub(super) fn plugin(app: &mut App) {
 #[derive(Component, Reflect, Clone)]
 #[reflect(Component)]
 pub struct MovementController {
-    /// The direction the character wants to move in.
     pub intent: Vec2,
-
-    /// Maximum speed in world units per second.
-    /// 1 world unit = 1 pixel when using the default 2D camera and no physics engine.
     pub max_speed: f32,
+    pub jump_speed: f32,
+    pub jump_requested: bool,
 }
 
 impl Default for MovementController {
     fn default() -> Self {
-        Self {
-            intent: Vec2::ZERO,
-            // 400 pixels per second is a nice default, but we can still vary this per character.
-            max_speed: 400.0,
-        }
+        Self { intent: Vec2::ZERO, max_speed: 400.0, jump_speed: 1200.0, jump_requested: false }
     }
 }
 
-fn apply_movement(
-    time: Res<Time>,
-    mut movement_query: Query<(&MovementController, &mut Transform)>,
-) {
-    for (controller, mut transform) in &mut movement_query {
-        let velocity = controller.max_speed * controller.intent;
-        transform.translation += velocity.extend(0.0) * time.delta_secs();
+fn apply_movement(mut movement_query: Query<(&MovementController, &mut LinearVelocity)>) {
+    for (controller, mut velocity) in &mut movement_query {
+        velocity.0.x = controller.max_speed * controller.intent.x;
+    }
+}
+
+
+fn apply_jump(mut movement_query: Query<(&mut MovementController, &mut LinearVelocity, &ShapeHits)>) {
+    for (mut controller, mut velocity, hits) in &mut movement_query {
+        if controller.jump_requested && !hits.is_empty() {
+            velocity.0.y = controller.jump_speed;
+        }
+        controller.jump_requested = false;
     }
 }
 

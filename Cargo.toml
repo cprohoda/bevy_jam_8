@@ -8,6 +8,7 @@ edition = "2024"
 # Use only features needed for a 2D game to improve compile time and size
 bevy = { version = "0.20.1", default-features = false, features = ["2d", "ui", "audio"] }
 rand = "0.9"
+avian2d = "0.8"
 # Compile out low-severity logs to improve performance.
 # Remove these features if you want to profile your game with tracy.
 # (see <https://github.com/bevyengine/bevy/blob/main/docs/profiling.md#tracy-profiler>)

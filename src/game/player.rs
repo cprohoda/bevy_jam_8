@@ -1,5 +1,6 @@
 //! Player-specific behavior.
 
+use avian2d::prelude::{Collider, Friction, LockedAxes, RigidBody, ShapeCaster};
 use bevy::{
     ecs::template::OptionTemplate, image::{ImageLoaderSettings, ImageSampler, TextureAtlasTemplate}, prelude::*,
 };
@@ -7,7 +8,7 @@ use bevy::{
 use crate::{
     AppSystems, PausableSystems,
     asset_tracking::LoadResource,
-    demo::{
+    game::{
         animation::PlayerAnimation,
         movement::{MovementController, ScreenWrap},
     },
@@ -53,6 +54,13 @@ pub fn player(
             max_speed,
         }
         ScreenWrap
+
+        RigidBody::Dynamic
+        Collider::rectangle(32.0, 32.0)
+        LockedAxes::ROTATION_LOCKED
+        Friction::ZERO
+        ShapeCaster::new(Collider::rectangle(30.0, 30.0), Vec2::ZERO, 0.0, Dir2::NEG_Y)
+
     }
 }
 
@@ -66,12 +74,12 @@ fn record_player_directional_input(
 ) {
     // Collect directional input.
     let mut intent = Vec2::ZERO;
-    if input.pressed(KeyCode::KeyW) || input.pressed(KeyCode::ArrowUp) {
-        intent.y += 1.0;
-    }
-    if input.pressed(KeyCode::KeyS) || input.pressed(KeyCode::ArrowDown) {
-        intent.y -= 1.0;
-    }
+    // if input.pressed(KeyCode::KeyW) || input.pressed(KeyCode::ArrowUp) {
+    //     intent.y += 1.0;
+    // }
+    // if input.pressed(KeyCode::KeyS) || input.pressed(KeyCode::ArrowDown) {
+    //     intent.y -= 1.0;
+    // }
     if input.pressed(KeyCode::KeyA) || input.pressed(KeyCode::ArrowLeft) {
         intent.x -= 1.0;
     }
@@ -79,14 +87,22 @@ fn record_player_directional_input(
         intent.x += 1.0;
     }
 
+
+
+
     // Normalize intent so that diagonal movement is the same speed as horizontal / vertical.
     // This should be omitted if the input comes from an analog stick instead.
     let intent = intent.normalize_or_zero();
 
-    // Apply movement intent to controllers.
+    let jump = input.just_pressed(KeyCode::Space);
     for mut controller in &mut controller_query {
         controller.intent = intent;
+        if jump {
+            controller.jump_requested = true;
+        }
     }
+
+
 }
 
 #[derive(Resource, Asset, Clone, Reflect)]

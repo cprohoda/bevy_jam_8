@@ -1,11 +1,12 @@
 //! Spawn the main level.
 
+use avian2d::prelude::{Collider, RigidBody};
 use bevy::prelude::*;
 
 use crate::{
     asset_tracking::LoadResource,
     audio::music,
-    demo::player::{PlayerAssets, player},
+    game::player::{PlayerAssets, player},
     screens::Screen,
 };
 
@@ -44,8 +45,25 @@ pub fn spawn_level(
         Children [
             @player(400.0, &player_assets, &mut texture_atlas_layouts)
             --
+            @platform(Vec2::new(0.0, -300.0), Vec2::new(1200.0, 40.0))
+            --
             #GameplayMusic
             @music(level_assets.music.clone())
         ]
     });
+}
+
+#[derive(Component, Debug, Clone, Copy, PartialEq, Eq, Default, Reflect)]
+#[reflect(Component)]
+struct Platform;
+pub fn platform(position: Vec2, size: Vec2) -> impl Scene {
+    bsn! {
+        Platform
+        Transform::from_translation(position.extend(0.0))
+        Sprite {
+            color: Color::srgb(0.3, 0.3, 0.4),
+        }
+        RigidBody::Static
+        Collider::rectangle(size.x, size.y)   // полные размеры, не половины
+    }
 }
