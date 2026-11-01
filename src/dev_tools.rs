@@ -2,8 +2,11 @@
 
 use avian2d::prelude::{PhysicsDebugPlugin, PhysicsGizmos};
 use bevy::{
-    dev_tools::states::log_transitions, input::common_conditions::input_just_pressed, prelude::*,
+    dev_tools::states::log_transitions,
+    input::common_conditions::{input_just_pressed, input_toggle_active},
+    prelude::*,
 };
+use bevy_inspector_egui::{bevy_egui::EguiPlugin, quick::WorldInspectorPlugin};
 
 use crate::screens::Screen;
 
@@ -19,9 +22,16 @@ pub(super) fn plugin(app: &mut App) {
     );
 
     app.add_plugins(PhysicsDebugPlugin::default());
+
+    // Inspect and edit entities and components at runtime.
+    app.add_plugins((
+        EguiPlugin::default(),
+        WorldInspectorPlugin::new().run_if(input_toggle_active(false, INSPECTOR_KEY)),
+    ));
 }
 
 const TOGGLE_KEY: KeyCode = KeyCode::Backquote;
+const INSPECTOR_KEY: KeyCode = KeyCode::F1;
 
 fn toggle_debug_ui(mut options: ResMut<GlobalUiDebugOptions>) {
     options.toggle();

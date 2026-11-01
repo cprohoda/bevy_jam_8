@@ -47,6 +47,8 @@ pub fn spawn_level(
             --
             @platform(Vec2::new(0.0, -300.0), Vec2::new(1200.0, 40.0))
             --
+            @platform(Vec2::new(200.0, 0.0), Vec2::new(400.0, 400.0))
+            --
             #GameplayMusic
             @music(level_assets.music.clone())
         ]
@@ -62,7 +64,9 @@ pub fn platform(position: Vec2, size: Vec2) -> impl Scene {
         Transform::from_translation(position.extend(0.0))
         Sprite {
             color: Color::srgb(0.3, 0.3, 0.4),
+            custom_size: size
         }
+        Sprite
         RigidBody::Static
         Collider::rectangle(size.x, size.y)   // полные размеры, не половины
     }

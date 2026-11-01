@@ -1,8 +1,8 @@
 //! Player-specific behavior.
 
-use avian2d::prelude::{Collider, Friction, LockedAxes, RigidBody, ShapeCaster};
+use avian2d::prelude::{CoefficientCombine, Collider, Friction, LockedAxes, RigidBody, ShapeCaster};
 use bevy::{
-    ecs::template::OptionTemplate, image::{ImageLoaderSettings, ImageSampler, TextureAtlasTemplate}, prelude::*,
+    ecs::template::OptionTemplate, image::{ImageLoaderSettings, ImageSampler, TextureAtlasTemplate}, prelude::*, sprite::Anchor,
 };
 
 use crate::{
@@ -49,6 +49,7 @@ pub fn player(
                 index: { player_animation.get_atlas_index() },
             }),
         }
+        Anchor(Vec2::new(0.0, -3.0 / 32.0))
         Transform::from_scale(Vec2::splat(8.0).extend(1.0))
         MovementController {
             max_speed,
@@ -56,10 +57,11 @@ pub fn player(
         ScreenWrap
 
         RigidBody::Dynamic
-        Collider::rectangle(32.0, 32.0)
+        Collider::rectangle(20.0, 26.0)
         LockedAxes::ROTATION_LOCKED
-        Friction::ZERO
-        ShapeCaster::new(Collider::rectangle(30.0, 30.0), Vec2::ZERO, 0.0, Dir2::NEG_Y)
+        Friction::ZERO.with_combine_rule(CoefficientCombine::Min)
+        ShapeCaster::new(Collider::rectangle(150.0, 10.0), Vec2::ZERO, 0.0, Dir2::NEG_Y)
+            .with_max_distance(125.0)
 
     }
 }

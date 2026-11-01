@@ -42,7 +42,7 @@ pub struct MovementController {
 
 impl Default for MovementController {
     fn default() -> Self {
-        Self { intent: Vec2::ZERO, max_speed: 400.0, jump_speed: 1200.0, jump_requested: false }
+        Self { intent: Vec2::ZERO, max_speed: 400.0, jump_speed: 750.0, jump_requested: false }
     }
 }
 
