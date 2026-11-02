@@ -105,7 +105,7 @@ fn spawn_camera(mut commands: Commands) {
         Camera2d,
         Projection::Orthographic(OrthographicProjection {
             scaling_mode: bevy::camera::ScalingMode::AutoMin {
-                min_width: 400.0,
+                min_width: 256.0,
                 min_height: 256.0,
             },
             ..OrthographicProjection::default_2d()
