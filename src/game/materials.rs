@@ -1,12 +1,13 @@
 use std::time::Duration;
 
 use bevy::{prelude::*, render::render_resource::ShaderType};
+use bevy_ecs_ldtk::prelude::EntityInstance;
 
 use crate::{PausableSystems, screens::Screen};
 
 pub(super) fn plugin(app: &mut App) {
     app.add_systems(Startup, setup_materials)
-        .add_systems(OnEnter(Screen::Gameplay), spawn_materials)
+        .add_systems(Update, spawn_materials.run_if(in_state(Screen::Gameplay)))
         .add_systems(Update, respawn_materials.in_set(PausableSystems));
 }
 
@@ -185,39 +186,31 @@ fn setup_materials(
     commands.insert_resource(material_assets);
 }
 
-fn spawn_materials(mut commands: Commands, material_assets: Res<MaterialAssets>) {
-    commands.spawn_scene_list(materials_scene(&material_assets));
-}
-
-fn materials_scene(material_assets: &MaterialAssets) -> impl SceneList {
-    bsn_list! {
-        @spawn_material(Material::Cerulean, Vec3::new(-300.0, 40.0, 0.0), material_assets)
-        --
-        @spawn_material(Material::Lavender, Vec3::new(-400.0, 20.0, 0.0), material_assets)
-        --
-        @spawn_material(Material::Verdant, Vec3::new(-200.0, 20.0, 0.0), material_assets)
-    }
-}
-
-fn spawn_material(
-    material: Material,
-    translation: Vec3,
-    material_assets: &MaterialAssets,
-) -> impl Scene {
-    let (material_handle, mesh_handle) = material_assets.handles(&material);
-    let respawn = MaterialRespawn::from_duration(Duration::from_secs(3));
-
-    bsn! {
-        material
-        Mesh2d(mesh_handle)
-        MeshMaterial2d<ColorMaterial>(material_handle)
-        Transform::from_translation(translation).with_scale(Vec2::splat(30.0).extend(1.0))
-        MaterialAmount(10.0)
-        CollectableMaterial
-        respawn
-        Visibility::Visible
-        CollectionRadius
-        DespawnOnExit<Screen>(Screen::Gameplay)
+/// When LDtk spawns a `Cerulean` / `Lavender` / `Verdant` entity, turn it into a collectable material.
+fn spawn_materials(
+    mut commands: Commands,
+    mut spawn_points: Query<(Entity, &EntityInstance, &mut Transform), Added<EntityInstance>>,
+    material_assets: Res<MaterialAssets>,
+) {
+    for (entity, instance, mut transform) in &mut spawn_points {
+        let material = match instance.identifier.as_str() {
+            "Cerulean" => Material::Cerulean,
+            "Lavender" => Material::Lavender,
+            "Verdant" => Material::Verdant,
+            _ => continue,
+        };
+        let (material_handle, mesh_handle) = material_assets.handles(&material);
+        transform.scale = Vec2::splat(30.0).extend(1.0);
+        commands.entity(entity).insert((
+            material,
+            Mesh2d(mesh_handle),
+            MeshMaterial2d(material_handle),
+            MaterialAmount(10.0),
+            CollectableMaterial,
+            MaterialRespawn::from_duration(Duration::from_secs(3)),
+            Visibility::Visible,
+            CollectionRadius::default(),
+        ));
     }
 }
 

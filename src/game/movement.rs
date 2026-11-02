@@ -16,7 +16,10 @@
 use avian2d::prelude::*;
 use bevy::{prelude::*, window::PrimaryWindow};
 
-use crate::{AppSystems, PausableSystems, game::player::Player};
+use crate::{
+    AppSystems, PausableSystems,
+    game::{level::CurrentRoom, player::Player},
+};
 
 pub(super) fn plugin(app: &mut App) {
     app.add_systems(
@@ -43,7 +46,7 @@ pub struct MovementController {
 
 impl Default for MovementController {
     fn default() -> Self {
-        Self { intent: Vec2::ZERO, max_speed: 400.0, jump_speed: 750.0, jump_requested: false }
+        Self { intent: Vec2::ZERO, max_speed: 100.0, jump_speed: 175.0, jump_requested: false }
     }
 }
 
@@ -64,11 +67,38 @@ fn apply_jump(
     }
 }
 
+
 fn camera_follow_player(
-    mut camera_transform: Single<&mut Transform, (With<Camera2d>, Without<Player>)>,
+    mut camera: Single<(&mut Transform, &Projection), (With<Camera2d>, Without<Player>)>,
     player_transform: Single<&Transform, (With<Player>, Without<Camera2d>)>,
+    room: Res<CurrentRoom>,
 ) {
-    camera_transform.translation = player_transform.translation;
+    let (camera_transform, projection) = &mut *camera;
+    let target = player_transform.translation;
+    // Half the size of what the camera currently sees, in world units.
+    let half_view = match projection {
+        Projection::Orthographic(ortho) => ortho.area.size() / 2.0,
+        _ => Vec2::ZERO,
+    };
+    let clamped = clamp_to_room(target.truncate(), room.0, half_view);
+    camera_transform.translation = clamped.extend(target.z);
+}
+
+fn clamp_to_room(target: Vec2, room: Rect, half_view: Vec2) -> Vec2 {
+    if room.is_empty() || half_view == Vec2::ZERO {
+        return target;
+    }
+    let axis = |t: f32, min: f32, max: f32, half: f32| {
+        if max - min <= half * 2.0 {
+            (min + max) / 2.0
+        } else {
+            t.clamp(min + half, max - half)
+        }
+    };
+    Vec2::new(
+        axis(target.x, room.min.x, room.max.x, half_view.x),
+        axis(target.y, room.min.y, room.max.y, half_view.y),
+    )
 }
 
 #[derive(Component, Reflect, Clone, Default)]

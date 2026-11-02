@@ -10,7 +10,7 @@ use crate::{
     asset_tracking::LoadResource,
     game::{
         animation::PlayerAnimation,
-        movement::{MovementController, ScreenWrap},
+        movement::MovementController,
     },
 };
 
@@ -28,7 +28,7 @@ pub(super) fn plugin(app: &mut App) {
 
 /// The player character.
 pub fn player(
-    max_speed: f32,
+    position: Vec2,
     player_assets: &PlayerAssets,
     texture_atlas_layouts: &mut Assets<TextureAtlasLayout>,
 ) -> impl Scene {
@@ -50,18 +50,15 @@ pub fn player(
             }),
         }
         Anchor(Vec2::new(0.0, -3.0 / 32.0))
-        Transform::from_scale(Vec2::splat(8.0).extend(1.0))
-        MovementController {
-            max_speed,
-        }
-        ScreenWrap
+        Transform::from_translation(position.extend(10.0))
+        MovementController
 
         RigidBody::Dynamic
         Collider::rectangle(20.0, 26.0)
         LockedAxes::ROTATION_LOCKED
         Friction::ZERO.with_combine_rule(CoefficientCombine::Min)
-        ShapeCaster::new(Collider::rectangle(150.0, 10.0), Vec2::ZERO, 0.0, Dir2::NEG_Y)
-            .with_max_distance(125.0)
+        ShapeCaster::new(Collider::rectangle(20.0, 2.0), Vec2::ZERO, 0.0, Dir2::NEG_Y)
+            .with_max_distance(15.0)
 
     }
 }

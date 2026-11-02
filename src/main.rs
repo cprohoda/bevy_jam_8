@@ -56,7 +56,7 @@ impl Plugin for AppPlugin {
         ));
 
         app.add_plugins(PhysicsPlugins::default().with_length_unit(100.0));
-        app.insert_resource(Gravity(Vec2::NEG_Y * 2500.0));
+        app.insert_resource(Gravity(Vec2::NEG_Y * 750.0));
         // Order new `AppSystems` variants by adding them here:
         app.configure_sets(
             Update,
@@ -98,6 +98,17 @@ struct Pause(pub bool);
 #[derive(SystemSet, Copy, Clone, Eq, PartialEq, Hash, Debug)]
 struct PausableSystems;
 
+
 fn spawn_camera(mut commands: Commands) {
-    commands.spawn((Name::new("Camera"), Camera2d));
+    commands.spawn((
+        Name::new("Camera"),
+        Camera2d,
+        Projection::Orthographic(OrthographicProjection {
+            scaling_mode: bevy::camera::ScalingMode::AutoMin {
+                min_width: 400.0,
+                min_height: 256.0,
+            },
+            ..OrthographicProjection::default_2d()
+        }),
+    ));
 }
