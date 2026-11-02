@@ -124,9 +124,9 @@ pub(super) struct CollectableMaterial;
 #[derive(Component, Debug, Clone, Deref, DerefMut)]
 pub(super) struct MaterialRespawn(Timer);
 
-impl Default for MaterialRespawn {
-    fn default() -> Self {
-        let mut timer = Timer::new(Duration::from_secs(10), TimerMode::Once);
+impl MaterialRespawn {
+    fn from_duration(duration: Duration) -> Self {
+        let mut timer = Timer::new(duration, TimerMode::Once);
         timer.pause();
         Self(timer)
     }
@@ -191,11 +191,11 @@ fn spawn_materials(mut commands: Commands, material_assets: Res<MaterialAssets>)
 
 fn materials_scene(material_assets: &MaterialAssets) -> impl SceneList {
     bsn_list! {
-        @spawn_material(Material::Cerulean, Vec3::new(0.0, 100.0, 0.0), material_assets)
+        @spawn_material(Material::Cerulean, Vec3::new(-300.0, 40.0, 0.0), material_assets)
         --
-        @spawn_material(Material::Lavender, Vec3::new(100.0, 50.0, 0.0), material_assets)
+        @spawn_material(Material::Lavender, Vec3::new(-400.0, 20.0, 0.0), material_assets)
         --
-        @spawn_material(Material::Verdant, Vec3::new(-100.0, 50.0, 0.0), material_assets)
+        @spawn_material(Material::Verdant, Vec3::new(-200.0, 20.0, 0.0), material_assets)
     }
 }
 
@@ -205,6 +205,7 @@ fn spawn_material(
     material_assets: &MaterialAssets,
 ) -> impl Scene {
     let (material_handle, mesh_handle) = material_assets.handles(&material);
+    let respawn = MaterialRespawn::from_duration(Duration::from_secs(3));
 
     bsn! {
         material
@@ -213,7 +214,7 @@ fn spawn_material(
         Transform::from_translation(translation).with_scale(Vec2::splat(30.0).extend(1.0))
         MaterialAmount(10.0)
         CollectableMaterial
-        MaterialRespawn
+        respawn
         Visibility::Visible
         CollectionRadius
         DespawnOnExit<Screen>(Screen::Gameplay)
