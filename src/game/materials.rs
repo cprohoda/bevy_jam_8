@@ -2,10 +2,11 @@ use std::time::Duration;
 
 use bevy::{prelude::*, render::render_resource::ShaderType};
 
-use crate::PausableSystems;
+use crate::{PausableSystems, screens::Screen};
 
 pub(super) fn plugin(app: &mut App) {
     app.add_systems(Startup, setup_materials)
+        .add_systems(OnEnter(Screen::Gameplay), spawn_materials)
         .add_systems(Update, respawn_materials.in_set(PausableSystems));
 }
 
@@ -181,12 +182,14 @@ fn setup_materials(
         cerulean: (cerulean_material, circle_mesh),
     };
 
-    commands.spawn_scene_list(spawn_materials(&material_assets));
-
     commands.insert_resource(material_assets);
 }
 
-fn spawn_materials(material_assets: &MaterialAssets) -> impl SceneList {
+fn spawn_materials(mut commands: Commands, material_assets: Res<MaterialAssets>) {
+    commands.spawn_scene_list(materials_scene(&material_assets));
+}
+
+fn materials_scene(material_assets: &MaterialAssets) -> impl SceneList {
     bsn_list! {
         @spawn_material(Material::Cerulean, Vec3::new(0.0, 100.0, 0.0), material_assets)
         --
@@ -213,6 +216,7 @@ fn spawn_material(
         MaterialRespawn
         Visibility::Visible
         CollectionRadius
+        DespawnOnExit<Screen>(Screen::Gameplay)
     }
 }
 
@@ -225,15 +229,15 @@ fn respawn_materials(
     time: Res<Time>,
 ) {
     respawnable_materials.iter_mut().for_each(|(entity, mut respawn, mut visibility)| {
-        if respawn.is_finished() {
-            respawn.reset();
-            respawn.pause();
-            commands.entity(entity).insert(CollectableMaterial);
-            *visibility = Visibility::Visible;
-        }
+            if respawn.is_finished() {
+                respawn.reset();
+                respawn.pause();
+                commands.entity(entity).insert(CollectableMaterial);
+                *visibility = Visibility::Visible;
+            }
 
-        if !respawn.is_paused() {
-            respawn.tick(time.delta());
-        }
-    });
+            if !respawn.is_paused() {
+                respawn.tick(time.delta());
+            }
+        });
 }
