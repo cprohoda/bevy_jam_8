@@ -68,7 +68,7 @@ pub fn player(
 
 #[derive(Component, Debug, Clone, Copy, PartialEq, Eq, Default, Reflect)]
 #[reflect(Component)]
-struct Player;
+pub(super) struct Player;
 
 fn record_player_directional_input(
     input: Res<ButtonInput<KeyCode>>,

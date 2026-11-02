@@ -13,10 +13,10 @@
 //! purposes. If you want to move the player in a smoother way,
 //! consider using a [fixed timestep](https://github.com/bevyengine/bevy/blob/main/examples/movement/physics_in_fixed_timestep.rs).
 
-use bevy::{prelude::*, window::PrimaryWindow};
 use avian2d::prelude::*;
+use bevy::{prelude::*, window::PrimaryWindow};
 
-use crate::{AppSystems, PausableSystems};
+use crate::{AppSystems, PausableSystems, game::player::Player};
 
 pub(super) fn plugin(app: &mut App) {
     app.add_systems(
@@ -25,7 +25,8 @@ pub(super) fn plugin(app: &mut App) {
             .chain()
             .in_set(AppSystems::Update)
             .in_set(PausableSystems),
-    );
+    )
+    .add_systems(PostUpdate, camera_follow_player.in_set(PausableSystems));
 }
 
 /// These are the movement parameters for our character controller.
@@ -52,14 +53,22 @@ fn apply_movement(mut movement_query: Query<(&MovementController, &mut LinearVel
     }
 }
 
-
-fn apply_jump(mut movement_query: Query<(&mut MovementController, &mut LinearVelocity, &ShapeHits)>) {
+fn apply_jump(
+    mut movement_query: Query<(&mut MovementController, &mut LinearVelocity, &ShapeHits)>,
+) {
     for (mut controller, mut velocity, hits) in &mut movement_query {
         if controller.jump_requested && !hits.is_empty() {
             velocity.0.y = controller.jump_speed;
         }
         controller.jump_requested = false;
     }
+}
+
+fn camera_follow_player(
+    mut camera_transform: Single<&mut Transform, (With<Camera2d>, Without<Player>)>,
+    player_transform: Single<&Transform, (With<Player>, Without<Camera2d>)>,
+) {
+    camera_transform.translation = player_transform.translation;
 }
 
 #[derive(Component, Reflect, Clone, Default)]
