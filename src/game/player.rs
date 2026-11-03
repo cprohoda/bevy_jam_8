@@ -54,7 +54,7 @@ pub fn player(
         MovementController
 
         RigidBody::Dynamic
-        Collider::rectangle(20.0, 26.0)
+        Collider::round_rectangle(12.0, 18.0, 4.0)
         LockedAxes::ROTATION_LOCKED
         Friction::ZERO.with_combine_rule(CoefficientCombine::Min)
         ShapeCaster::new(Collider::rectangle(18.0, 2.0), Vec2::ZERO, 0.0, Dir2::NEG_Y)

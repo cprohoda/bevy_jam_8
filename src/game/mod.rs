@@ -6,6 +6,7 @@
 use bevy::prelude::*;
 
 mod animation;
+mod background;
 mod inventory;
 pub mod level;
 mod materials;
@@ -15,6 +16,7 @@ pub mod player;
 pub(super) fn plugin(app: &mut App) {
     app.add_plugins((
         animation::plugin,
+        background::plugin,
         inventory::plugin,
         level::plugin,
         materials::plugin,

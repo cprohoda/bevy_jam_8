@@ -68,7 +68,7 @@ fn apply_jump(
 }
 
 
-fn camera_follow_player(
+pub(super) fn camera_follow_player(
     mut camera: Single<(&mut Transform, &Projection), (With<Camera2d>, Without<Player>)>,
     player_transform: Single<&Transform, (With<Player>, Without<Camera2d>)>,
     room: Res<CurrentRoom>,

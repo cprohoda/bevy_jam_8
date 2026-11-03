@@ -16,8 +16,7 @@ pub(super) fn plugin(app: &mut App) {
         // Start in the first room; its neighbours are loaded with it.
         .insert_resource(LevelSelection::index(0))
         .insert_resource(LdtkSettings {
-            // Draw the level background colour from LDtk.
-            level_background: LevelBackground::Rendered,
+            level_background: LevelBackground::Nonexistent,
             // Place rooms at their LDtk world positions, and keep neighbours loaded.
             level_spawn_behavior: LevelSpawnBehavior::UseWorldTranslation {
                 load_level_neighbors: true,
