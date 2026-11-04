@@ -29,7 +29,10 @@ pub(super) fn plugin(app: &mut App) {
             .in_set(AppSystems::Update)
             .in_set(PausableSystems),
     )
-    .add_systems(PostUpdate, camera_follow_player.in_set(PausableSystems));
+    .add_systems(
+        PostUpdate,
+        (camera_follow_player).in_set(PausableSystems),
+    );
 }
 
 /// These are the movement parameters for our character controller.
@@ -46,7 +49,12 @@ pub struct MovementController {
 
 impl Default for MovementController {
     fn default() -> Self {
-        Self { intent: Vec2::ZERO, max_speed: 100.0, jump_speed: 230.0, jump_requested: false }
+        Self {
+            intent: Vec2::ZERO,
+            max_speed: 100.0,
+            jump_speed: 230.0,
+            jump_requested: false,
+        }
     }
 }
 
@@ -66,7 +74,6 @@ fn apply_jump(
         controller.jump_requested = false;
     }
 }
-
 
 pub(super) fn camera_follow_player(
     mut camera: Single<(&mut Transform, &Projection), (With<Camera2d>, Without<Player>)>,
@@ -117,3 +124,8 @@ fn apply_screen_wrap(
         transform.translation = wrapped.extend(transform.translation.z);
     }
 }
+
+// fn reset_player_velocity(mut velocity: Single<&mut LinearVelocity, With<Player>>) {
+//     velocity.x = 0.0;
+//     velocity.y = 0.0
+// }

@@ -1,6 +1,6 @@
 //! Player-specific behavior.
 
-use avian2d::prelude::{CoefficientCombine, Collider, Friction, LockedAxes, RigidBody, ShapeCaster};
+use avian2d::{dynamics::rigid_body::mass_properties::components::Mass, prelude::{CoefficientCombine, Collider, Friction, LockedAxes, RigidBody, ShapeCaster}};
 use bevy::{
     ecs::template::OptionTemplate, image::{ImageLoaderSettings, ImageSampler, TextureAtlasTemplate}, prelude::*, sprite::Anchor,
 };
@@ -54,6 +54,7 @@ pub fn player(
         MovementController
 
         RigidBody::Dynamic
+        Mass(50.0)
         Collider::round_rectangle(12.0, 18.0, 4.0)
         LockedAxes::ROTATION_LOCKED
         Friction::ZERO.with_combine_rule(CoefficientCombine::Min)
