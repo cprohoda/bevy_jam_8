@@ -125,7 +125,5 @@ fn apply_screen_wrap(
     }
 }
 
-// fn reset_player_velocity(mut velocity: Single<&mut LinearVelocity, With<Player>>) {
-//     velocity.x = 0.0;
-//     velocity.y = 0.0
-// }
+#[derive(Component, Deref)]
+pub(super) struct FeatherWeight(f32);

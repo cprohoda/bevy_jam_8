@@ -7,6 +7,7 @@ use bevy::prelude::*;
 
 mod animation;
 mod background;
+mod wind;
 mod inventory;
 pub mod level;
 mod materials;
@@ -17,6 +18,7 @@ pub(super) fn plugin(app: &mut App) {
     app.add_plugins((
         animation::plugin,
         background::plugin,
+        wind::plugin,
         inventory::plugin,
         level::plugin,
         materials::plugin,

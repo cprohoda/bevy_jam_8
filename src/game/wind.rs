@@ -1,4 +1,4 @@
-use avian2d::dynamics::rigid_body::{LinearVelocity, mass_properties::components::Mass};
+use avian2d::dynamics::rigid_body::forces::{Forces, WriteRigidBodyForces};
 use bevy::{
     ecs::{query::QueryItem, system::lifetimeless::Read},
     prelude::*,
@@ -86,9 +86,6 @@ impl Material2d for WindMaterial {
     }
 }
 
-#[derive(Component, Deref)]
-pub(super) struct FeatherWeight(f32);
-
 fn setup_wind(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
@@ -119,7 +116,7 @@ fn spawn_wind(mut commands: Commands, wind_assets: Res<WindAssets>) {
         MeshMaterial2d(material_handle.clone()),
         Transform::from_translation(Vec3::new(1800.0, -50.0, 0.0)),
         Wind {
-            vector: Vec2::new(1.0, 1.0),
+            vector: Vec2::new(-10.0, 10.0),
         },
     ));
     commands.spawn((
@@ -127,20 +124,17 @@ fn spawn_wind(mut commands: Commands, wind_assets: Res<WindAssets>) {
         MeshMaterial2d(material_handle),
         Transform::from_translation(Vec3::new(1800.0, 0.0, 0.0)),
         Wind {
-            vector: Vec2::new(1.0, 1.0),
+            vector: Vec2::new(10.0, 10.0),
         },
     ));
 }
 
 fn apply_directional_wind(
     wind: Query<(&Wind, &Transform)>,
-    player: Single<(&Transform, Option<&FeatherWeight>), With<Player>>,
-    player_physics: Single<(&Mass, &mut LinearVelocity), With<Player>>,
+    player: Single<(Forces, &Transform), With<Player>>,
 ) {
-    let (transform, featherweight) = player.into_inner();
+    let (mut forces, transform) = player.into_inner();
     let pt = transform.translation; // pt for player_translation
-    let (mass, mut velocity) = player_physics.into_inner();
-    let effective_mass = **mass * **(featherweight.or(Some(&FeatherWeight(1.0))).unwrap());
 
     wind.iter().for_each(|(wind, transform)| {
         // could probably streamline this with avian but I'm not particularly familiar
@@ -150,8 +144,7 @@ fn apply_directional_wind(
         let left = transform.translation.x - (WIND_DIMENSIONS.x / 2.0);
 
         if pt.x > left && pt.x < right && pt.y > bot && pt.y < top {
-            velocity.0.x += wind.vector.x / effective_mass;
-            velocity.0.y += wind.vector.y / effective_mass;
+            forces.apply_force(wind.vector);
         }
     });
 }
