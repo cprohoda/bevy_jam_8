@@ -95,14 +95,24 @@ fn record_player_directional_input(
     let intent = intent.normalize_or_zero();
 
     let jump = input.just_pressed(KeyCode::Space);
+    let dash = input.just_pressed(KeyCode::Digit1);
+    let featherweight = input.just_pressed(KeyCode::Digit2);
+    let air_jump = input.just_pressed(KeyCode::Digit3);
     for mut controller in &mut controller_query {
         controller.intent = intent;
         if jump {
             controller.jump_requested = true;
         }
+        if dash {
+            controller.dash_requested = true;
+        }
+        if featherweight {
+            controller.featherweight_requested = true;
+        }
+        if air_jump {
+            controller.air_jump_requested = true;
+        }
     }
-
-
 }
 
 #[derive(Resource, Asset, Clone, Reflect)]

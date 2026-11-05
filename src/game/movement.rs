@@ -24,15 +24,12 @@ use crate::{
 pub(super) fn plugin(app: &mut App) {
     app.add_systems(
         Update,
-        (apply_movement, apply_screen_wrap, apply_jump)
+        (manage_dash, apply_movement, apply_screen_wrap, apply_jump)
             .chain()
             .in_set(AppSystems::Update)
             .in_set(PausableSystems),
     )
-    .add_systems(
-        PostUpdate,
-        (camera_follow_player).in_set(PausableSystems),
-    );
+    .add_systems(PostUpdate, camera_follow_player.in_set(PausableSystems));
 }
 
 /// These are the movement parameters for our character controller.
@@ -45,6 +42,9 @@ pub struct MovementController {
     pub max_speed: f32,
     pub jump_speed: f32,
     pub jump_requested: bool,
+    pub dash_requested: bool,
+    pub featherweight_requested: bool,
+    pub air_jump_requested: bool,
 }
 
 impl Default for MovementController {
@@ -54,13 +54,17 @@ impl Default for MovementController {
             max_speed: 100.0,
             jump_speed: 230.0,
             jump_requested: false,
+            dash_requested: false,
+            featherweight_requested: false,
+            air_jump_requested: false,
         }
     }
 }
 
-fn apply_movement(mut movement_query: Query<(&MovementController, &mut LinearVelocity)>) {
-    for (controller, mut velocity) in &mut movement_query {
-        velocity.0.x = controller.max_speed * controller.intent.x;
+fn apply_movement(mut movement_query: Query<(&MovementController, &mut LinearVelocity, Option<&Dash>)>) {
+    for (controller, mut velocity, dash) in &mut movement_query {
+        let dash_speed_modifier = dash.and_then(|d| Some(d.speed_modifier)).or(Some(1.0)).unwrap();
+        velocity.0.x = controller.max_speed * controller.intent.x * dash_speed_modifier;
     }
 }
 
@@ -125,5 +129,39 @@ fn apply_screen_wrap(
     }
 }
 
-#[derive(Component, Deref)]
-pub(super) struct FeatherWeight(f32);
+fn manage_dash(
+    mut commands: Commands,
+    player: Single<(Entity, &mut MovementController, Option<&mut Dash>), With<Player>>,
+    time: Res<Time>,
+) {
+    let (entity, mut controller, dash_option) = player.into_inner();
+
+    if let Some(mut current_dash) = dash_option {
+        println!("Dash timer: {:?}", current_dash.duration.remaining());
+        if current_dash.duration.is_finished() {
+            commands.entity(entity).remove::<Dash>();
+        }
+        current_dash.duration.tick(time.delta());
+    }
+
+    if controller.dash_requested {
+        println!("Dash added");
+        commands.entity(entity).insert(Dash::default());
+        controller.dash_requested = false;
+    }
+}
+
+#[derive(Component)]
+pub(super) struct Dash {
+    speed_modifier: f32,
+    duration: Timer,
+}
+
+impl Default for Dash {
+    fn default() -> Self {
+        Self {
+            speed_modifier: 4.0,
+            duration: Timer::from_seconds(0.3, TimerMode::Once),
+        }
+    }
+}
