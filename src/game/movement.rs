@@ -177,10 +177,25 @@ fn apply_screen_wrap(
 
 fn manage_dash(
     mut commands: Commands,
-    player: Single<(Entity, &mut MovementController, Option<&mut Dash>), With<Player>>,
+    player: Single<
+        (
+            Entity,
+            &mut MovementController,
+            &mut PotionsInventory,
+            Option<&mut Dash>,
+        ),
+        With<Player>,
+    >,
     time: Res<Time>,
 ) {
-    let (entity, mut controller, dash_option) = player.into_inner();
+    let (entity, mut controller, mut inventory, dash_option) = player.into_inner();
+
+    if controller.dash_requested
+        && dash_option.is_none()
+        && let Ok(dash) = inventory.use_dash()
+    {
+        commands.entity(entity).insert(dash);
+    }
 
     if let Some(mut current_dash) = dash_option {
         if current_dash.duration.is_finished() {
@@ -190,10 +205,7 @@ fn manage_dash(
         }
     }
 
-    if controller.dash_requested {
-        commands.entity(entity).insert(Dash::default());
-        controller.dash_requested = false;
-    }
+    controller.dash_requested = false;
 }
 
 #[derive(Component, Clone)]
@@ -220,8 +232,8 @@ pub(super) struct FeatherWeight {
 impl Default for FeatherWeight {
     fn default() -> Self {
         Self {
-            mass_modifier: 0.1,
-            duration: Timer::from_seconds(5.0, TimerMode::Once),
+            mass_modifier: 0.5,
+            duration: Timer::from_seconds(1.0, TimerMode::Once),
         }
     }
 }
@@ -237,13 +249,23 @@ fn manage_featherweight(
             &mut MovementController,
             &mut Mass,
             &BaseMass,
+            &mut PotionsInventory,
             Option<&mut FeatherWeight>,
         ),
         With<Player>,
     >,
     time: Res<Time>,
 ) {
-    let (entity, mut controller, mut mass, base_mass, option_featherweight) = player.into_inner();
+    let (entity, mut controller, mut mass, base_mass, mut inventory, option_featherweight) =
+        player.into_inner();
+
+    if controller.featherweight_requested
+        && option_featherweight.is_none()
+        && let Ok(featherweight) = inventory.use_featherweight()
+    {
+        **mass = **base_mass * featherweight.mass_modifier;
+        commands.entity(entity).insert(featherweight);
+    }
 
     if let Some(mut featherweight) = option_featherweight {
         if featherweight.duration.is_finished() {
@@ -254,12 +276,7 @@ fn manage_featherweight(
         }
     }
 
-    if controller.featherweight_requested {
-        let featherweight = FeatherWeight::default();
-        **mass = **base_mass * featherweight.mass_modifier;
-        controller.featherweight_requested = false;
-        commands.entity(entity).insert(featherweight);
-    }
+    controller.featherweight_requested = false;
 }
 
 #[derive(Component, Clone)]
@@ -279,6 +296,6 @@ impl AirJump {
 
 impl Default for AirJump {
     fn default() -> Self {
-        Self { remaining: 3 }
+        Self { remaining: 1 }
     }
 }

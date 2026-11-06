@@ -140,10 +140,13 @@ struct Potions<T: Default> {
 
 impl<T: Default> Potions<T> {
     fn new() -> Potions<T> {
-        let potions = (0..10).map(|_| T::default()).collect::<Vec<T>>();
+        let count = 3;
+
+        let potions = (0..count).map(|_| T::default()).collect::<Vec<T>>();
+
         Potions {
-            count: 10,
-            max: 10,
+            count: count,
+            max: count,
             potions,
         }
     }
