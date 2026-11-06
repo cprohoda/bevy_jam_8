@@ -24,7 +24,13 @@ use crate::{
 pub(super) fn plugin(app: &mut App) {
     app.add_systems(
         Update,
-        (manage_dash, apply_movement, apply_screen_wrap, apply_jump)
+        (
+            manage_dash,
+            manage_featherweight,
+            apply_movement,
+            apply_screen_wrap,
+            apply_jump,
+        )
             .chain()
             .in_set(AppSystems::Update)
             .in_set(PausableSystems),
@@ -61,9 +67,14 @@ impl Default for MovementController {
     }
 }
 
-fn apply_movement(mut movement_query: Query<(&MovementController, &mut LinearVelocity, Option<&Dash>)>) {
+fn apply_movement(
+    mut movement_query: Query<(&MovementController, &mut LinearVelocity, Option<&Dash>)>,
+) {
     for (controller, mut velocity, dash) in &mut movement_query {
-        let dash_speed_modifier = dash.and_then(|d| Some(d.speed_modifier)).or(Some(1.0)).unwrap();
+        let dash_speed_modifier = dash
+            .and_then(|d| Some(d.speed_modifier))
+            .or(Some(1.0))
+            .unwrap();
         velocity.0.x = controller.max_speed * controller.intent.x * dash_speed_modifier;
     }
 }
@@ -137,11 +148,11 @@ fn manage_dash(
     let (entity, mut controller, dash_option) = player.into_inner();
 
     if let Some(mut current_dash) = dash_option {
-        println!("Dash timer: {:?}", current_dash.duration.remaining());
         if current_dash.duration.is_finished() {
             commands.entity(entity).remove::<Dash>();
+        } else {
+            current_dash.duration.tick(time.delta());
         }
-        current_dash.duration.tick(time.delta());
     }
 
     if controller.dash_requested {
@@ -163,5 +174,56 @@ impl Default for Dash {
             speed_modifier: 4.0,
             duration: Timer::from_seconds(0.3, TimerMode::Once),
         }
+    }
+}
+
+#[derive(Component)]
+pub(super) struct FeatherWeight {
+    mass_modifier: f32,
+    duration: Timer,
+}
+
+impl Default for FeatherWeight {
+    fn default() -> Self {
+        Self {
+            mass_modifier: 0.1,
+            duration: Timer::from_seconds(5.0, TimerMode::Once),
+        }
+    }
+}
+
+#[derive(Component, Deref)]
+pub(super) struct BaseMass(f32);
+
+fn manage_featherweight(
+    mut commands: Commands,
+    player: Single<
+        (
+            Entity,
+            &mut MovementController,
+            &mut Mass,
+            &BaseMass,
+            Option<&mut FeatherWeight>,
+        ),
+        With<Player>,
+    >,
+    time: Res<Time>,
+) {
+    let (entity, mut controller, mut mass, base_mass, option_featherweight) = player.into_inner();
+
+    if let Some(mut featherweight) = option_featherweight {
+        if featherweight.duration.is_finished() {
+            **mass = **base_mass;
+            commands.entity(entity).remove::<FeatherWeight>();
+        } else {
+            featherweight.duration.tick(time.delta());
+        }
+    }
+
+    if controller.featherweight_requested {
+        let featherweight = FeatherWeight::default();
+        **mass = **base_mass * featherweight.mass_modifier;
+        controller.featherweight_requested = false;
+        commands.entity(entity).insert(featherweight);
     }
 }
