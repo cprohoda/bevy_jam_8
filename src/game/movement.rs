@@ -94,32 +94,26 @@ fn apply_jump(
         &mut movement_query
     {
         if controller.jump_requested {
-            println!("Start jump logic");
             let mut jumped = false; // lets me simplify the otherwise nested logic
             if !hits.is_empty() {
                 velocity.0.y = controller.jump_speed;
                 jumped = true;
-                println!("Jumped off of ground");
             }
             if !jumped && let Some(mut air_jump) = air_jump_option {
                 if air_jump.active() {
                     air_jump.use_jump();
                     velocity.0.y = controller.jump_speed;
                     jumped = true;
-                    println!("Jumped based on existing air jump status");
                 }
                 if !air_jump.active() {
                     // separate condition block because it may change because of first block
                     commands.entity(entity).remove::<AirJump>();
-                    println!("Remove air jump status");
                 }
             }
             if !jumped && let Ok(air_jump) = inventory.use_air_jump() {
                 commands.entity(entity).insert(air_jump);
                 velocity.0.y = controller.jump_speed;
-                println!("Jumped via air jump potion");
             }
-            println!("End jump logic");
         }
         controller.jump_requested = false;
     }
