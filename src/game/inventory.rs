@@ -9,6 +9,7 @@ use crate::{
             CollectableMaterial, CollectionRadius, Material, MaterialAmount, MaterialRespawn,
             Materials,
         },
+        movement::{AirJump, Dash, FeatherWeight},
         player::Player,
     },
 };
@@ -79,14 +80,84 @@ fn collect_materials(
     );
 }
 
-// struct PotionInventory {
-//     potions: Potions,
-// }
+#[derive(Component, Clone)]
+pub(super) struct PotionsInventory {
+    dash: Potions<Dash>,
+    featherweight: Potions<FeatherWeight>,
+    air_jump: Potions<AirJump>,
+}
 
-// struct Potions {
-//     dash: Vec2,
-//     feather: Vec2,
-//     speed: Vec2,
-//     air_jump: Vec2,
-//     avarice: Vec2,
-// }
+impl PotionsInventory {
+    pub(super) fn new() -> Self {
+        Self {
+            dash: Potions::new(),
+            featherweight: Potions::new(),
+            air_jump: Potions::new(),
+        }
+    }
+
+    pub(super) fn use_dash(&mut self) -> Result<Dash, ()> {
+        self.dash.use_potion()
+    }
+
+    pub(super) fn use_featherweight(&mut self) -> Result<FeatherWeight, ()> {
+        self.featherweight.use_potion()
+    }
+
+    pub(super) fn use_air_jump(&mut self) -> Result<AirJump, ()> {
+        if let Ok(mut potion) = self.air_jump.use_potion() {
+            potion.use_jump();
+
+            Ok(potion)
+        } else {
+            Err(())
+        }
+    }
+
+    pub(super) fn enhance_inventory(&mut self) {
+        self.dash.increase_capacity(2);
+        self.featherweight.increase_capacity(2);
+        self.air_jump.increase_capacity(2);
+    }
+}
+
+impl Default for PotionsInventory {
+    fn default() -> Self {
+        Self {
+            dash: Potions::new(),
+            featherweight: Potions::new(),
+            air_jump: Potions::new(),
+        }
+    }
+}
+
+#[derive(Component, Clone)]
+struct Potions<T: Default> {
+    count: u32,
+    max: u32,
+    potions: Vec<T>,
+}
+
+impl<T: Default> Potions<T> {
+    fn new() -> Potions<T> {
+        let potions = (0..10).map(|_| T::default()).collect::<Vec<T>>();
+        Potions {
+            count: 10,
+            max: 10,
+            potions,
+        }
+    }
+
+    fn increase_capacity(&mut self, capacity: u32) {
+        self.max += capacity;
+    }
+
+    fn use_potion(&mut self) -> Result<T, ()> {
+        if let Some(potion) = self.potions.pop() {
+            self.count -= 1;
+            Ok(potion)
+        } else {
+            Err(())
+        }
+    }
+}

@@ -90,7 +90,11 @@ impl Materials {
         item.current = f32::max(item.max, item.current + **amount);
     }
 
-    pub(super) fn consume(&mut self, material: &Material, amount: &MaterialAmount) -> Result<(), ()> {
+    pub(super) fn consume(
+        &mut self,
+        material: &Material,
+        amount: &MaterialAmount,
+    ) -> Result<(), ()> {
         let item = self.get_material_mut(material);
 
         if **amount > item.current {
@@ -222,7 +226,9 @@ fn respawn_materials(
     >,
     time: Res<Time>,
 ) {
-    respawnable_materials.iter_mut().for_each(|(entity, mut respawn, mut visibility)| {
+    respawnable_materials
+        .iter_mut()
+        .for_each(|(entity, mut respawn, mut visibility)| {
             if respawn.is_finished() {
                 respawn.reset();
                 respawn.pause();

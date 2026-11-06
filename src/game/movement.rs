@@ -18,7 +18,7 @@ use bevy::{prelude::*, window::PrimaryWindow};
 
 use crate::{
     AppSystems, PausableSystems,
-    game::{level::CurrentRoom, player::Player},
+    game::{inventory::PotionsInventory, level::CurrentRoom, player::Player},
 };
 
 pub(super) fn plugin(app: &mut App) {
@@ -80,11 +80,46 @@ fn apply_movement(
 }
 
 fn apply_jump(
-    mut movement_query: Query<(&mut MovementController, &mut LinearVelocity, &ShapeHits)>,
+    mut commands: Commands,
+    mut movement_query: Query<(
+        Entity,
+        &mut MovementController,
+        &mut LinearVelocity,
+        &ShapeHits,
+        &mut PotionsInventory,
+        Option<&mut AirJump>,
+    )>,
 ) {
-    for (mut controller, mut velocity, hits) in &mut movement_query {
-        if controller.jump_requested && !hits.is_empty() {
-            velocity.0.y = controller.jump_speed;
+    for (entity, mut controller, mut velocity, hits, mut inventory, air_jump_option) in
+        &mut movement_query
+    {
+        if controller.jump_requested {
+            println!("Start jump logic");
+            let mut jumped = false; // lets me simplify the otherwise nested logic
+            if !hits.is_empty() {
+                velocity.0.y = controller.jump_speed;
+                jumped = true;
+                println!("Jumped off of ground");
+            }
+            if !jumped && let Some(mut air_jump) = air_jump_option {
+                if air_jump.active() {
+                    air_jump.use_jump();
+                    velocity.0.y = controller.jump_speed;
+                    jumped = true;
+                    println!("Jumped based on existing air jump status");
+                }
+                if !air_jump.active() {
+                    // separate condition block because it may change because of first block
+                    commands.entity(entity).remove::<AirJump>();
+                    println!("Remove air jump status");
+                }
+            }
+            if !jumped && let Ok(air_jump) = inventory.use_air_jump() {
+                commands.entity(entity).insert(air_jump);
+                velocity.0.y = controller.jump_speed;
+                println!("Jumped via air jump potion");
+            }
+            println!("End jump logic");
         }
         controller.jump_requested = false;
     }
@@ -156,13 +191,12 @@ fn manage_dash(
     }
 
     if controller.dash_requested {
-        println!("Dash added");
         commands.entity(entity).insert(Dash::default());
         controller.dash_requested = false;
     }
 }
 
-#[derive(Component)]
+#[derive(Component, Clone)]
 pub(super) struct Dash {
     speed_modifier: f32,
     duration: Timer,
@@ -177,7 +211,7 @@ impl Default for Dash {
     }
 }
 
-#[derive(Component)]
+#[derive(Component, Clone)]
 pub(super) struct FeatherWeight {
     mass_modifier: f32,
     duration: Timer,
@@ -192,8 +226,8 @@ impl Default for FeatherWeight {
     }
 }
 
-#[derive(Component, Deref)]
-pub(super) struct BaseMass(f32);
+#[derive(Component, Deref, Clone, Default)]
+pub(super) struct BaseMass(pub f32);
 
 fn manage_featherweight(
     mut commands: Commands,
@@ -225,5 +259,26 @@ fn manage_featherweight(
         **mass = **base_mass * featherweight.mass_modifier;
         controller.featherweight_requested = false;
         commands.entity(entity).insert(featherweight);
+    }
+}
+
+#[derive(Component, Clone)]
+pub(super) struct AirJump {
+    remaining: u32,
+}
+
+impl AirJump {
+    pub(super) fn use_jump(&mut self) {
+        self.remaining -= 1;
+    }
+
+    pub(super) fn active(&self) -> bool {
+        self.remaining > 0
+    }
+}
+
+impl Default for AirJump {
+    fn default() -> Self {
+        Self { remaining: 3 }
     }
 }

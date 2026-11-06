@@ -1,8 +1,14 @@
 //! Player-specific behavior.
 
-use avian2d::{dynamics::rigid_body::mass_properties::components::Mass, prelude::{CoefficientCombine, Collider, Friction, LockedAxes, RigidBody, ShapeCaster}};
+use avian2d::{
+    dynamics::rigid_body::mass_properties::components::Mass,
+    prelude::{CoefficientCombine, Collider, Friction, LockedAxes, RigidBody, ShapeCaster},
+};
 use bevy::{
-    ecs::template::OptionTemplate, image::{ImageLoaderSettings, ImageSampler, TextureAtlasTemplate}, prelude::*, sprite::Anchor,
+    ecs::template::OptionTemplate,
+    image::{ImageLoaderSettings, ImageSampler, TextureAtlasTemplate},
+    prelude::*,
+    sprite::Anchor,
 };
 
 use crate::{
@@ -10,7 +16,8 @@ use crate::{
     asset_tracking::LoadResource,
     game::{
         animation::PlayerAnimation,
-        movement::MovementController,
+        inventory::PotionsInventory,
+        movement::{BaseMass, MovementController},
     },
 };
 
@@ -55,6 +62,8 @@ pub fn player(
 
         RigidBody::Dynamic
         Mass(50.0)
+        BaseMass(50.0)
+        PotionsInventory::new()
         Collider::round_rectangle(12.0, 18.0, 4.0)
         LockedAxes::ROTATION_LOCKED
         Friction::ZERO.with_combine_rule(CoefficientCombine::Min)
@@ -87,9 +96,6 @@ fn record_player_directional_input(
         intent.x += 1.0;
     }
 
-
-
-
     // Normalize intent so that diagonal movement is the same speed as horizontal / vertical.
     // This should be omitted if the input comes from an analog stick instead.
     let intent = intent.normalize_or_zero();
@@ -97,7 +103,6 @@ fn record_player_directional_input(
     let jump = input.just_pressed(KeyCode::Space);
     let dash = input.just_pressed(KeyCode::Digit1);
     let featherweight = input.just_pressed(KeyCode::Digit2);
-    let air_jump = input.just_pressed(KeyCode::Digit3);
     for mut controller in &mut controller_query {
         controller.intent = intent;
         if jump {
@@ -108,9 +113,6 @@ fn record_player_directional_input(
         }
         if featherweight {
             controller.featherweight_requested = true;
-        }
-        if air_jump {
-            controller.air_jump_requested = true;
         }
     }
 }
