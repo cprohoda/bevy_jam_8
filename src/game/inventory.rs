@@ -7,7 +7,7 @@ use crate::{
     game::{
         materials::{
             CollectableMaterial, CollectionRadius, Material, MaterialAmount, MaterialRespawn,
-            Materials,
+            Materials, Recipe,
         },
         movement::{AirJump, Dash, FeatherWeight},
         player::Player,
@@ -25,12 +25,27 @@ pub(super) fn plugin(app: &mut App) {
 pub(super) struct MaterialInventory {
     #[uniform(0)]
     materials: Materials,
+    recipes: Vec<Recipe>,
 }
 
 impl MaterialInventory {
     pub(super) fn new() -> Self {
         Self {
-            materials: Materials::new(),
+            materials: Materials::new(0.0, 0.0, 0.0, 0.0, 0.0),
+            recipes: vec![
+                Recipe::new(
+                    InventoryItem::AirJumpPotion,
+                    Materials::new(5.0, 5.0, 0.0, 0.0, 0.0),
+                ),
+                Recipe::new(
+                    InventoryItem::DashPotion,
+                    Materials::new(5.0, 0.0, 5.0, 0.0, 0.0),
+                ),
+                Recipe::new(
+                    InventoryItem::FeatherweightPotion,
+                    Materials::new(0.0, 10.0, 0.0, 0.0, 0.0),
+                ),
+            ],
         }
     }
 }
@@ -74,7 +89,9 @@ fn collect_materials(
                 respawn.unpause();
                 commands.entity(entity).remove::<CollectableMaterial>();
                 *visibility = Visibility::Hidden;
-                materials_inventory.materials.add(material, amount);
+                materials_inventory
+                    .materials
+                    .add_material(material, **amount);
             }
         },
     );
@@ -163,4 +180,11 @@ impl<T: Default> Potions<T> {
             Err(())
         }
     }
+}
+
+#[derive(Component, Clone, Debug)]
+pub(super) enum InventoryItem {
+    DashPotion,
+    FeatherweightPotion,
+    AirJumpPotion,
 }

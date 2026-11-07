@@ -3,7 +3,11 @@ use std::time::Duration;
 use bevy::{prelude::*, render::render_resource::ShaderType};
 use bevy_ecs_ldtk::prelude::EntityInstance;
 
-use crate::{PausableSystems, screens::Screen};
+use crate::{
+    PausableSystems,
+    game::inventory::InventoryItem,
+    screens::Screen,
+};
 
 pub(super) fn plugin(app: &mut App) {
     app.add_systems(Startup, setup_materials)
@@ -16,94 +20,85 @@ pub(crate) enum Material {
     Cerulean,
     Lavender,
     Verdant,
+    Aether,
+    Gold,
 }
 
 #[derive(Component, Deref, Default, Clone)]
 pub(crate) struct MaterialAmount(f32);
 
 #[derive(ShaderType, Debug, Clone)]
-pub(crate) struct MaterialCapacity {
-    current: f32,
-    max: f32,
-}
-
-#[derive(ShaderType, Debug, Clone)]
 pub(crate) struct Materials {
-    cerulean: MaterialCapacity,
-    lavender: MaterialCapacity,
-    verdant: MaterialCapacity,
+    cerulean: f32, // would use hashmap but that's painful for shaders
+    lavender: f32,
+    verdant: f32,
+    aether: f32,
     gold: f32,
 }
 
 impl Materials {
-    pub(crate) fn new() -> Self {
+    pub(crate) fn new(cerulean: f32, lavender: f32, verdant: f32, aether: f32, gold: f32) -> Self {
         Self {
-            cerulean: MaterialCapacity {
-                current: 0.0,
-                max: 10.0,
-            },
-            lavender: MaterialCapacity {
-                current: 0.0,
-                max: 10.0,
-            },
-            verdant: MaterialCapacity {
-                current: 0.0,
-                max: 10.0,
-            },
-            gold: 0.0,
+            cerulean,
+            lavender,
+            verdant,
+            aether,
+            gold,
         }
     }
 
-    pub(crate) fn get_material(&self, material: &Material) -> &MaterialCapacity {
+    pub(super) fn add_material(&mut self, material: &Material, amount: f32) {
         match material {
-            Material::Cerulean => &self.cerulean,
-            Material::Lavender => &self.lavender,
-            Material::Verdant => &self.verdant,
+            Material::Cerulean => {
+                self.cerulean += amount;
+            }
+            Material::Lavender => {
+                self.lavender += amount;
+            }
+            Material::Verdant => {
+                self.verdant += amount;
+            }
+            Material::Aether => {
+                self.aether += amount;
+            }
+            Material::Gold => {
+                self.gold += amount;
+            }
         }
     }
 
-    pub(super) fn get_material_mut(&mut self, material: &Material) -> &mut MaterialCapacity {
-        match material {
-            Material::Cerulean => &mut self.cerulean,
-            Material::Lavender => &mut self.lavender,
-            Material::Verdant => &mut self.verdant,
-        }
-    }
-
-    pub(crate) fn current_amount(&self, material: &Material) -> f32 {
-        self.get_material(material).current
-    }
-
-    pub(crate) fn current_percent(&self, material: &Material) -> f32 {
-        let item = self.get_material(material);
-
-        item.current * 100.0 / item.max
-    }
-
-    pub(crate) fn max(&self, material: &Material) -> f32 {
-        self.get_material(material).max
-    }
-
-    pub(super) fn add(&mut self, material: &Material, amount: &MaterialAmount) {
-        let item = self.get_material_mut(material);
-
-        item.current = f32::max(item.max, item.current + **amount);
-    }
-
-    pub(super) fn consume(
-        &mut self,
-        material: &Material,
-        amount: &MaterialAmount,
-    ) -> Result<(), ()> {
-        let item = self.get_material_mut(material);
-
-        if **amount > item.current {
-            Err(())
+    pub(super) fn consume(&mut self, recipe: Recipe) -> Result<InventoryItem, ()> {
+        if self.aether >= recipe.ingredients.aether
+            && self.cerulean >= recipe.ingredients.cerulean
+            && self.gold >= recipe.ingredients.gold
+            && self.lavender >= recipe.ingredients.lavender
+            && self.verdant >= recipe.ingredients.verdant
+        {
+            self.aether -= recipe.ingredients.aether;
+            self.cerulean -= recipe.ingredients.cerulean;
+            self.gold -=  recipe.ingredients.gold;
+            self.lavender -= recipe.ingredients.lavender;
+            self.verdant -= recipe.ingredients.verdant;
+            Ok(recipe.output)
         } else {
-            item.current -= **amount;
-            Ok(())
+            Err(())
         }
     }
+}
+
+#[derive(Component, Clone, Debug)]
+pub(super) struct Recipe {
+    output: InventoryItem,
+    ingredients: Materials,
+}
+
+impl Recipe {
+    pub(super) fn new(output: InventoryItem, ingredients: Materials) -> Self {
+        Self {
+            output,
+            ingredients,
+        }
+    } 
 }
 
 #[derive(Resource)]
@@ -119,6 +114,7 @@ impl MaterialAssets {
             Material::Cerulean => self.cerulean.clone(),
             Material::Lavender => self.lavender.clone(),
             Material::Verdant => self.verdant.clone(),
+            _ => self.cerulean.clone(), // default to cerulean for now
         }
     }
 }
