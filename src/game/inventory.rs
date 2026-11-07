@@ -3,14 +3,11 @@ use bevy::{
 };
 
 use crate::{
-    PausableSystems,
-    game::{
-        materials::{
+    PausableSystems, game::{
+        inventory::InventoryItem::DashPotion, materials::{
             CollectableMaterial, CollectionRadius, Material, MaterialAmount, MaterialRespawn,
             Materials, Recipe,
-        },
-        movement::{AirJump, Dash, FeatherWeight},
-        player::Player,
+        }, movement::{AirJump, Dash, FeatherWeight}, player::Player,
     },
 };
 
@@ -26,6 +23,7 @@ pub(super) struct MaterialInventory {
     #[uniform(0)]
     materials: Materials,
     recipes: Vec<Recipe>,
+    recipe_index: usize,
 }
 
 impl MaterialInventory {
@@ -46,7 +44,18 @@ impl MaterialInventory {
                     Materials::new(0.0, 10.0, 0.0, 0.0, 0.0),
                 ),
             ],
+            recipe_index: 0,
         }
+    }
+
+    pub(super) fn get_indexed_item(&self) -> Option<InventoryItem> {
+        self.recipes.get(self.recipe_index).and_then(|recipe| Some(recipe.output()))
+    }
+
+    pub(super) fn brew_item(&mut self) -> Result<InventoryItem, ()> {
+        let Some(recipe) = self.recipes.get(self.recipe_index) else { return Err(()); };
+
+        self.materials.consume(recipe)
     }
 }
 
@@ -113,6 +122,22 @@ impl PotionsInventory {
         }
     }
 
+    pub(super) fn can_add_item(&self, item: InventoryItem) -> bool {
+        match item {
+            InventoryItem::AirJumpPotion => self.air_jump.can_add_potion(),
+            InventoryItem::DashPotion => self.dash.can_add_potion(),
+            InventoryItem::FeatherweightPotion => self.featherweight.can_add_potion(),
+        }
+    }
+
+    pub(super) fn add_item(&mut self, item: InventoryItem) {
+        match item {
+            InventoryItem::AirJumpPotion => { self.air_jump.add_potion(AirJump::default()); },
+            InventoryItem::DashPotion => { self.dash.add_potion(Dash::default()); },
+            InventoryItem::FeatherweightPotion => { self.featherweight.add_potion(FeatherWeight::default()); },
+        }
+    }
+
     pub(super) fn use_dash(&mut self) -> Result<Dash, ()> {
         self.dash.use_potion()
     }
@@ -170,6 +195,17 @@ impl<T: Default> Potions<T> {
 
     fn increase_capacity(&mut self, capacity: u32) {
         self.max += capacity;
+    }
+
+    fn can_add_potion(&self) -> bool {
+        self.count < self.max
+    }
+
+    fn add_potion(&mut self, item: T) {
+        if self.count < self.max {
+            self.count += 1;
+            self.potions.push(item);
+        };
     }
 
     fn use_potion(&mut self) -> Result<T, ()> {

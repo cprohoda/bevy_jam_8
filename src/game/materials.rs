@@ -27,7 +27,7 @@ pub(crate) enum Material {
 #[derive(Component, Deref, Default, Clone)]
 pub(crate) struct MaterialAmount(f32);
 
-#[derive(ShaderType, Debug, Clone)]
+#[derive(ShaderType, Component, Debug, Clone)]
 pub(crate) struct Materials {
     cerulean: f32, // would use hashmap but that's painful for shaders
     lavender: f32,
@@ -67,7 +67,7 @@ impl Materials {
         }
     }
 
-    pub(super) fn consume(&mut self, recipe: Recipe) -> Result<InventoryItem, ()> {
+    pub(super) fn consume(&mut self, recipe: &Recipe) -> Result<InventoryItem, ()> {
         if self.aether >= recipe.ingredients.aether
             && self.cerulean >= recipe.ingredients.cerulean
             && self.gold >= recipe.ingredients.gold
@@ -79,7 +79,7 @@ impl Materials {
             self.gold -=  recipe.ingredients.gold;
             self.lavender -= recipe.ingredients.lavender;
             self.verdant -= recipe.ingredients.verdant;
-            Ok(recipe.output)
+            Ok(recipe.output.clone())
         } else {
             Err(())
         }
@@ -98,7 +98,11 @@ impl Recipe {
             output,
             ingredients,
         }
-    } 
+    }
+
+    pub(super) fn output(&self) -> InventoryItem {
+        self.output.clone()
+    }
 }
 
 #[derive(Resource)]
